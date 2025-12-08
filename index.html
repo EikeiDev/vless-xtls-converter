@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>VLESS XHTTP+TLS Converter (Podkop outbound)</title>
+    <title>VLESS XHTTP + Reality/TLS Converter - Podkop edition</title>
     <style>
         body { background-color: #2b2b2b; color: #d4d4d4; font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .container { width: 90%; max-width: 900px; background-color: #2b2b2b; padding: 25px; box-sizing: border-box; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -24,7 +24,7 @@
 <body>
 
     <div class="container">
-        <h2>VLESS XHTTP+TLS Converter (Podkop outbound)</h2>
+        <h2>VLESS XHTTP + Reality/TLS Converter - Podkop edition</h2>
         <textarea id="urlInput" placeholder="Вставьте вашу ссылку vless://..."></textarea>
         <button onclick="convertURL()">Получить JSON</button>
         
@@ -60,8 +60,12 @@
                 const host = params.get('host') || sni;
                 
                 const security = params.get('security');
-                const tlsEnabled = (security === 'tls');
-                const insecure = (params.get('allowInsecure') === '1');
+                const isReality = (security === 'reality');
+                const isTls = (security === 'tls');
+
+                const pbk = params.get('pbk') || '';
+                const sid = params.get('sid') || '';
+                const fp = params.get('fp') || 'chrome';
 
                 let alpnArray = [];
                 const alpnRaw = params.get('alpn');
@@ -71,19 +75,42 @@
                     if (type === 'xhttp') alpnArray = ["h2", "http/1.1"];
                 }
 
+                const tlsSettings = {
+                    "enabled": true,
+                    "server_name": sni,
+                    "alpn": alpnArray
+                };
+
+                if (isReality) {
+                    tlsSettings.reality = {
+                        "enabled": true,
+                        "public_key": pbk,
+                        "short_id": sid
+                    };
+                    tlsSettings.utls = {
+                        "enabled": true,
+                        "fingerprint": fp
+                    };
+                } else if (isTls) {
+                    if (params.has('allowInsecure')) {
+                        tlsSettings.insecure = (params.get('allowInsecure') === '1');
+                    }
+                    if (params.has('fp')) {
+                        tlsSettings.utls = {
+                            "enabled": true,
+                            "fingerprint": fp
+                        };
+                    }
+                }
+
                 const config = {
                     "type": "vless",
                     "tag": tag,
                     "server": server,
                     "server_port": port,
                     "uuid": uuid,
-                    "flow": "", 
-                    "tls": {
-                        "enabled": tlsEnabled,
-                        "server_name": sni,
-                        "insecure": insecure,
-                        "alpn": alpnArray
-                    },
+                    "flow": "",
+                    "tls": tlsSettings,
                     "transport": {
                         "type": type,
                         "path": path,
