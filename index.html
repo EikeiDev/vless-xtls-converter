@@ -732,17 +732,13 @@
                     if (type === 'xhttp') alpnArray = ["h2", "http/1.1"];
                 }
 
-                let tlsSettings = null;
+                const tlsSettings = {
+                    "enabled": true,
+                    "server_name": sni,
+                    "alpn": alpnArray
+                };
 
-                if (isReality || isTls) {
-                    tlsSettings = {
-                        "enabled": true,
-                        "server_name": sni,
-                        "alpn": alpnArray
-                    };
-                }
-
-                if (isReality && tlsSettings) {
+                if (isReality) {
                     tlsSettings.reality = {
                         "enabled": true,
                         "public_key": pbk,
@@ -752,7 +748,7 @@
                         "enabled": true,
                         "fingerprint": fp
                     };
-                } else if (isTls && tlsSettings) {
+                } else if (isTls) {
                     if (params.has('allowInsecure')) {
                         tlsSettings.insecure = (params.get('allowInsecure') === '1');
                     }
@@ -766,7 +762,7 @@
 
                 // ECH (Encrypted Client Hello)
                 const echRaw = params.get('ech');
-                if (echRaw && tlsSettings) {
+                if (echRaw) {
                     const echBase64 = decodeURIComponent(echRaw);
                     const echPem = "-----BEGIN ECH CONFIGS-----\n" + echBase64 + "\n-----END ECH CONFIGS-----";
                     tlsSettings.ech = {
@@ -785,42 +781,91 @@
                     transportSettings.host = host;
                 }
 
+                // Parse extra parameter (JSON with additional transport settings)
+                const extraRaw = params.get('extra');
+                if (extraRaw) {
+                    try {
+                        const extra = JSON.parse(decodeURIComponent(extraRaw));
+
+                        // x_padding_bytes from extra overrides URL param
+                        if (extra.xPaddingBytes !== undefined) {
+                            transportSettings.x_padding_bytes = String(extra.xPaddingBytes);
+                        }
+
+                        // no_grpc_header (stream-up/one, client only)
+                        if (extra.noGRPCHeader !== undefined) {
+                            transportSettings.no_grpc_header = extra.noGRPCHeader;
+                        }
+
+                        // sc_max_each_post_bytes (packet-up only)
+                        if (extra.scMaxEachPostBytes !== undefined) {
+                            transportSettings.sc_max_each_post_bytes = extra.scMaxEachPostBytes;
+                        }
+
+                        // sc_min_posts_interval_ms (packet-up, client only)
+                        if (extra.scMinPostsIntervalMs !== undefined) {
+                            transportSettings.sc_min_posts_interval_ms = extra.scMinPostsIntervalMs;
+                        }
+
+                        // sc_stream_up_server_secs
+                        if (extra.scStreamUpServerSecs !== undefined) {
+                            transportSettings.sc_stream_up_server_secs = String(extra.scStreamUpServerSecs);
+                        }
+
+                        // xmux (h2/h3, client only)
+                        if (extra.xmux && typeof extra.xmux === 'object') {
+                            const xmux = {};
+                            if (extra.xmux.maxConcurrency !== undefined) {
+                                xmux.max_concurrency = String(extra.xmux.maxConcurrency);
+                            }
+                            if (extra.xmux.maxConnections !== undefined) {
+                                xmux.max_connections = extra.xmux.maxConnections;
+                            }
+                            if (extra.xmux.cMaxReuseTimes !== undefined) {
+                                xmux.c_max_reuse_times = extra.xmux.cMaxReuseTimes;
+                            }
+                            if (extra.xmux.hMaxRequestTimes !== undefined) {
+                                xmux.h_max_request_times = String(extra.xmux.hMaxRequestTimes);
+                            }
+                            if (extra.xmux.hMaxReusableSecs !== undefined) {
+                                xmux.h_max_reusable_secs = String(extra.xmux.hMaxReusableSecs);
+                            }
+                            if (extra.xmux.hKeepAlivePeriod !== undefined) {
+                                xmux.h_keep_alive_period = extra.xmux.hKeepAlivePeriod;
+                            }
+                            if (Object.keys(xmux).length > 0) {
+                                transportSettings.xmux = xmux;
+                            }
+                        }
+                    } catch (extraErr) {
+                        // Ignore malformed extra JSON
+                    }
+                }
+
                 const config = {
                     "type": "vless",
                     "tag": tag,
                     "server": server,
                     "server_port": port,
                     "uuid": uuid,
+                    "tls": tlsSettings,
                     "transport": transportSettings
                 };
-                if (tlsSettings) {
-                    config.tls = tlsSettings;
-                }
 
                 outputElement.innerHTML = syntaxHighlight(config);
 
-                // Show stats (safe DOM creation)
+                // Show stats
                 const secLabel = isReality ? 'Reality' : isTls ? 'TLS' : 'None';
-                statsBar.innerHTML = '';
-                const chips = [
-                    { dot: 'dot-green', text: secLabel },
-                    { dot: 'dot-purple', text: type.toUpperCase() },
-                    { dot: 'dot-amber', text: 'Port ' + port },
-                    { dot: 'dot-cyan', text: mode }
-                ];
-                chips.forEach(c => {
-                    const chip = document.createElement('span');
-                    chip.className = 'stat-chip';
-                    const dot = document.createElement('span');
-                    dot.className = 'dot ' + c.dot;
-                    chip.appendChild(dot);
-                    chip.appendChild(document.createTextNode(c.text));
-                    statsBar.appendChild(chip);
-                });
+                statsBar.innerHTML = `
+                    <span class="stat-chip"><span class="dot dot-green"></span>${secLabel}</span>
+                    <span class="stat-chip"><span class="dot dot-purple"></span>${type.toUpperCase()}</span>
+                    <span class="stat-chip"><span class="dot dot-amber"></span>Port ${port}</span>
+                    <span class="stat-chip"><span class="dot dot-cyan"></span>${mode}</span>
+                `;
                 statsBar.classList.add('visible');
 
             } catch (e) {
-                outputElement.innerHTML = '<span class="error-text">❌ Ошибка парсинга: ' + escapeHtml(e.message) + '</span>';
+                outputElement.innerHTML = '<span class="error-text">❌ Ошибка парсинга: ' + e.message + '</span>';
                 statsBar.classList.remove('visible');
             }
         }
@@ -870,10 +915,6 @@
                     return '<span class="' + cls + '">' + match + '</span>';
                 }
             );
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         // Enter to convert
