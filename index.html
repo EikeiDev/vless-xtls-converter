@@ -470,6 +470,7 @@
                 const type = params.get('type') || 'xhttp';
                 const path = params.get('path') || '/';
                 const mode = params.get('mode') || 'auto';
+                const xPaddingBytes = params.get('x_padding_bytes') || '100-1000';
                 const sni = params.get('sni') || '';
                 const host = params.get('host') || sni;
 
@@ -540,7 +541,8 @@
                         "type": type,
                         "path": path,
                         "host": host,
-                        "mode": mode
+                        "mode": mode,
+                        "x_padding_bytes": xPaddingBytes
                     }
                 };
 
