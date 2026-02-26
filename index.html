@@ -760,17 +760,6 @@
                     }
                 }
 
-                // ECH (Encrypted Client Hello)
-                const echRaw = params.get('ech');
-                if (echRaw) {
-                    const echBase64 = decodeURIComponent(echRaw);
-                    const echPem = "-----BEGIN ECH CONFIGS-----\n" + echBase64 + "\n-----END ECH CONFIGS-----";
-                    tlsSettings.ech = {
-                        "enabled": true,
-                        "config": [echPem]
-                    };
-                }
-
                 const transportSettings = {
                     "type": type,
                     "path": path,
@@ -928,3 +917,4 @@
 </body>
 
 </html>
+
