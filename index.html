@@ -712,7 +712,18 @@
                 const type = params.get('type') || 'xhttp';
                 const path = params.get('path') || '/';
                 const mode = params.get('mode') || 'auto';
-                const xPaddingBytes = params.get('x_padding_bytes') || '100-1000';
+
+                // Read padding from URL. Accept both snake_case (sing-box convention)
+                // and camelCase (xray convention). `extra` JSON (handled below) can
+                // override. Empty / missing string → undefined so we don't emit a
+                // hardcoded default that would mismatch the server and break sing-box
+                // / OpenWRT clients (stream error: received bad padding).
+                let xPaddingBytes =
+                    params.get('x_padding_bytes') ||
+                    params.get('xPaddingBytes') ||
+                    undefined;
+                if (xPaddingBytes === '') xPaddingBytes = undefined;
+
                 const sni = params.get('sni') || '';
                 const host = params.get('host') || sni;
 
@@ -763,9 +774,15 @@
                 const transportSettings = {
                     "type": type,
                     "path": path,
-                    "mode": mode,
-                    "x_padding_bytes": xPaddingBytes
+                    "mode": mode
                 };
+                // Only emit x_padding_bytes if the URL or extra JSON actually
+                // specified it. Emitting a hardcoded default when the server
+                // side uses a different range is the #1 cause of "stream error
+                // / bad padding" / EOF on sing-box clients (OpenWRT / Podkop).
+                if (xPaddingBytes !== undefined) {
+                    transportSettings.x_padding_bytes = xPaddingBytes;
+                }
                 if (host) {
                     transportSettings.host = host;
                 }

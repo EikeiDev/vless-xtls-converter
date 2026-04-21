@@ -41,6 +41,30 @@ vless://uuid@server:443?type=xhttp&security=reality&sni=example.com&pbk=KEY&sid=
 | `host` | HTTP host | = `sni` |
 | `alpn` | ALPN протоколы | `h2,http/1.1` |
 | `allowInsecure` | Пропуск проверки сертификата | `0` |
+| `x_padding_bytes` / `xPaddingBytes` | XHTTP padding, **должен совпадать с сервером** | *(не выставляется, если не задан)* |
+| `extra` | URL-encoded JSON с доп. настройками xhttp (`xPaddingBytes`, `xmux`, `scMaxEachPostBytes`, `noGRPCHeader`, …) | — |
+
+### ⚠️ Про `x_padding_bytes`
+
+На стороне сервера xray это поле задаётся как `xPaddingBytes` (например,
+`"80-600"`) внутри `xhttpSettings`. Значение на клиенте (sing-box) **должно
+совпадать диапазоном** — иначе sing-box молча закроет поток с ошибкой
+`stream error` / `bad padding` и OpenWRT-клиент не поднимется.
+
+Поэтому конвертер **не выдумывает дефолт**: если ни в URL, ни в `extra` JSON
+значение не указано, поле `x_padding_bytes` просто отсутствует в выходном
+JSON — sing-box сам возьмёт совместимый дефолт. Если же сервер действительно
+форсит конкретный диапазон — обязательно проставь его в ссылке:
+
+```
+vless://…&x_padding_bytes=80-600&…
+```
+
+или упакуй в `extra`:
+
+```
+vless://…&extra=%7B%22xPaddingBytes%22%3A%2280-600%22%7D&…
+```
 
 ## 📦 Пример вывода
 
