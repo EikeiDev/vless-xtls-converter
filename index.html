@@ -56,7 +56,6 @@
             position: relative;
         }
 
-        /* Animated background */
         body::before {
             content: '';
             position: fixed;
@@ -73,7 +72,6 @@
             animation: bgPulse 20s ease-in-out infinite alternate;
         }
 
-        /* Grid pattern overlay */
         body::after {
             content: '';
             position: fixed;
@@ -110,7 +108,6 @@
             max-width: 780px;
         }
 
-        /* ─── Header ─── */
         .header {
             text-align: center;
             margin-bottom: 40px;
@@ -194,7 +191,6 @@
             font-weight: 500;
         }
 
-        /* ─── Cards ─── */
         .card {
             position: relative;
             background: var(--bg-card);
@@ -240,7 +236,6 @@
             color: var(--accent-cyan);
         }
 
-        /* ─── Input ─── */
         textarea {
             width: 100%;
             height: 90px;
@@ -267,7 +262,6 @@
             box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.06), 0 0 20px rgba(6, 214, 160, 0.05);
         }
 
-        /* ─── Button ─── */
         .btn-wrapper {
             position: relative;
             margin-top: 16px;
@@ -329,7 +323,6 @@
             transform: rotate(90deg);
         }
 
-        /* ─── Output ─── */
         .output-header {
             display: flex;
             align-items: center;
@@ -406,7 +399,6 @@
             background: rgba(255, 255, 255, 0.15);
         }
 
-        /* Syntax colors */
         pre .key {
             color: #67e8f9;
         }
@@ -439,7 +431,6 @@
             font-family: var(--font-sans);
         }
 
-        /* ─── Toast ─── */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -466,7 +457,6 @@
             transform: translateX(-50%) translateY(0);
         }
 
-        /* ─── Stats bar ─── */
         .stats-bar {
             display: flex;
             gap: 6px;
@@ -523,7 +513,6 @@
             box-shadow: 0 0 6px rgba(6, 214, 160, 0.5);
         }
 
-        /* ─── Footer ─── */
         .footer {
             text-align: center;
             margin-top: 28px;
@@ -550,7 +539,6 @@
             opacity: 0.3;
         }
 
-        /* ─── Responsive ─── */
         @media (max-width: 640px) {
             body {
                 padding: 24px 14px 30px;
@@ -586,7 +574,6 @@
             }
         }
 
-        /* ─── Animate card entrance ─── */
         .card {
             animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
         }
@@ -685,7 +672,6 @@
         </div>
     </div>
 
-    <!-- Toast -->
     <div class="toast" id="toast">✓ Скопировано в буфер обмена</div>
 
     <script>
@@ -770,38 +756,55 @@
                     transportSettings.host = host;
                 }
 
-                // Parse extra parameter (JSON with additional transport settings)
                 const extraRaw = params.get('extra');
                 if (extraRaw) {
                     try {
                         const extra = JSON.parse(decodeURIComponent(extraRaw));
 
-                        // x_padding_bytes from extra overrides URL param
                         if (extra.xPaddingBytes !== undefined) {
                             transportSettings.x_padding_bytes = String(extra.xPaddingBytes);
                         }
 
-                        // no_grpc_header (stream-up/one, client only)
                         if (extra.noGRPCHeader !== undefined) {
                             transportSettings.no_grpc_header = extra.noGRPCHeader;
                         }
 
-                        // sc_max_each_post_bytes (packet-up only)
                         if (extra.scMaxEachPostBytes !== undefined) {
                             transportSettings.sc_max_each_post_bytes = extra.scMaxEachPostBytes;
                         }
 
-                        // sc_min_posts_interval_ms (packet-up, client only)
                         if (extra.scMinPostsIntervalMs !== undefined) {
                             transportSettings.sc_min_posts_interval_ms = extra.scMinPostsIntervalMs;
                         }
 
-                        // sc_stream_up_server_secs
                         if (extra.scStreamUpServerSecs !== undefined) {
                             transportSettings.sc_stream_up_server_secs = String(extra.scStreamUpServerSecs);
                         }
 
-                        // xmux (h2/h3, client only)
+                        if (extra.seqKey !== undefined) {
+                            transportSettings.seq_key = extra.seqKey;
+                        }
+
+                        if (extra.seqPlacement !== undefined) {
+                            transportSettings.seq_placement = extra.seqPlacement;
+                        }
+
+                        if (extra.xPaddingKey !== undefined) {
+                            transportSettings.x_padding_key = extra.xPaddingKey;
+                        }
+
+                        if (extra.xPaddingMethod !== undefined) {
+                            transportSettings.x_padding_method = extra.xPaddingMethod;
+                        }
+
+                        if (extra.xPaddingObfsMode !== undefined) {
+                            transportSettings.x_padding_obfs_mode = extra.xPaddingObfsMode;
+                        }
+
+                        if (extra.xPaddingPlacement !== undefined) {
+                            transportSettings.x_padding_placement = extra.xPaddingPlacement;
+                        }
+
                         if (extra.xmux && typeof extra.xmux === 'object') {
                             const xmux = {};
                             if (extra.xmux.maxConcurrency !== undefined) {
@@ -827,7 +830,6 @@
                             }
                         }
                     } catch (extraErr) {
-                        // Ignore malformed extra JSON
                     }
                 }
 
@@ -843,7 +845,6 @@
 
                 outputElement.innerHTML = syntaxHighlight(config);
 
-                // Show stats
                 const secLabel = isReality ? 'Reality' : isTls ? 'TLS' : 'None';
                 statsBar.innerHTML = `
                     <span class="stat-chip"><span class="dot dot-green"></span>${secLabel}</span>
@@ -906,7 +907,6 @@
             );
         }
 
-        // Enter to convert
         document.getElementById('urlInput').addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -917,4 +917,3 @@
 </body>
 
 </html>
-
